@@ -40,10 +40,16 @@ export type PuzzleId = string
 export type NetId = string -- atributo "NetId" de una instancia del mundo registrada por el servidor
 export type QuickChatId = number -- 1..6 (D-004: 6 frases fijas, sin texto libre)
 
-Types.ToolIds = table.freeze({ "Honda", "Yoyo", "Matraca" }) :: { ToolId }
-Types.CreatureIds = table.freeze({ "Chaneque", "Llorona", "CharroNegro", "PolillaPapel", "Rumor" }) :: { CreatureId }
-Types.LoreLayers = table.freeze({ "Tradicion", "RumorOlvido", "Recuperada" }) :: { LoreLayer }
-Types.SourceTags = table.freeze({ "Pergamino", "Mapa", "Lapiz" }) :: { SourceTag }
+-- Anotación en el local (no cast): Luau valida cada literal contra la unión
+local TOOL_IDS: { ToolId } = { "Honda", "Yoyo", "Matraca" }
+local CREATURE_IDS: { CreatureId } = { "Chaneque", "Llorona", "CharroNegro", "PolillaPapel", "Rumor" }
+local LORE_LAYERS: { LoreLayer } = { "Tradicion", "RumorOlvido", "Recuperada" }
+local SOURCE_TAGS: { SourceTag } = { "Pergamino", "Mapa", "Lapiz" }
+
+Types.ToolIds = table.freeze(TOOL_IDS)
+Types.CreatureIds = table.freeze(CREATURE_IDS)
+Types.LoreLayers = table.freeze(LORE_LAYERS)
+Types.SourceTags = table.freeze(SOURCE_TAGS)
 
 ------------------------------------------------------------------------
 -- Perfil persistente (ProfileStore, D-009)
