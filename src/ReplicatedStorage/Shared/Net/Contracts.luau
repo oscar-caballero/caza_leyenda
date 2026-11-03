@@ -22,19 +22,10 @@
 
 local Types = require(script.Parent.Parent.Types)
 
-------------------------------------------------------------------------
--- Descriptores de esquema (los interpreta Net/Schema en la semana 2)
-------------------------------------------------------------------------
+local Schema = require(script.Parent.Schema)
 
-export type FieldSchema =
-	{ kind: "enum", values: { string } }
-	| { kind: "int", min: number, max: number }
-	| { kind: "number", min: number, max: number } -- rechaza NaN e inf
-	| { kind: "string", maxLen: number, pattern: string? }
-	| { kind: "unitVector3" } -- magnitud 1 ± 0.01
-	| { kind: "array", of: FieldSchema, maxLen: number }
-	| { kind: "optional", of: FieldSchema }
-	| { kind: "opaque", note: string } -- solo servidor→cliente; documentado, no validado
+-- Única definición de los descriptores: Net/Schema (aquí solo se reexporta)
+export type FieldSchema = Schema.FieldSchema
 
 export type Direction = "ClientToServer" | "ServerToClient"
 
