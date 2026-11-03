@@ -1,0 +1,21 @@
+# Builds de Rojo
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+
+# Herramientas locales
+/Packages/
+/ServerPackages/
+/DevPackages/
+sourcemap.json
+roblox.d.luau
+globalTypes.d.luau
+
+# Secretos (API key de Open Cloud, etc.)
+.env
+*.key
+
+# Editor / SO
+.vscode/settings.json
+.DS_Store
