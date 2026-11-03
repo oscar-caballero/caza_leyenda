@@ -19,3 +19,7 @@ globalTypes.d.luau
 # Editor / SO
 .vscode/settings.json
 .DS_Store
+
+# Generados por scripts/check.sh
+roblox.yml
+.globalTypes.version

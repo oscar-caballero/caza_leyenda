@@ -23,8 +23,9 @@ Herramientas fijadas con Rokit (`rokit.toml`): Rojo, StyLua, selene, luau-lsp y 
 ```bash
 rokit install            # instala las versiones fijadas
 rojo serve               # sincroniza con Roblox Studio (plugin de Rojo)
-stylua src tests         # formato
-selene src               # lint
+./scripts/check.sh       # StyLua + selene + luau-lsp + tests de Lune (lo mismo que la CI)
 ```
+
+Ningún PR se mergea con la CI en rojo (D-010).
 
 Cambios a contratos, datos, economía, contenido infantil, chat, assets de IA o publicación requieren aprobación humana (D-010).

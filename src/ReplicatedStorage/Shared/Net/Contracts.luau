@@ -53,8 +53,13 @@ export type Contract = {
 	notes: string,
 }
 
+-- Las listas de Types son { ToolId } (unión de literales) y el esquema guarda { string }.
+-- Las tablas en Luau son invariantes, así que se convierte una vez aquí.
+local function enum(values: { any }): FieldSchema
+	return { kind = "enum", values = table.clone(values) :: { string } }
+end
+
 local NET_ID: FieldSchema = { kind = "string", maxLen = 64, pattern = "^[%w_%.%-]+$" }
-local ID: FieldSchema = { kind = "string", maxLen = 64, pattern = "^[%w_%.:%-]+$" }
 
 local Contracts: { [string]: Contract } = {
 	--------------------------------------------------------------------
@@ -65,7 +70,7 @@ local Contracts: { [string]: Contract } = {
 		direction = "ClientToServer",
 		reliable = true,
 		schema = {
-			tool = { kind = "enum", values = Types.ToolIds },
+			tool = enum(Types.ToolIds),
 			aim = { kind = "unitVector3" },
 			-- marca de tiempo del cliente para el rebobinado (D-009: máx. 250 ms).
 			-- El servidor recorta al rango [ahora-0.25, ahora]; nunca confía en ella más allá.
@@ -82,7 +87,7 @@ local Contracts: { [string]: Contract } = {
 		reliable = true,
 		schema = {
 			slot = { kind = "int", min = 1, max = 2 },
-			tool = { kind = "enum", values = Types.ToolIds },
+			tool = enum(Types.ToolIds),
 		},
 		rateLimit = { burst = 3, perSecond = 1 },
 		notes = "Solo dentro de una zona con tag ZonaPueblo; si no, aviso Tool.EquipOnlyInTown.",
@@ -92,7 +97,7 @@ local Contracts: { [string]: Contract } = {
 		direction = "ClientToServer",
 		reliable = true,
 		schema = {
-			tool = { kind = "enum", values = Types.ToolIds },
+			tool = enum(Types.ToolIds),
 		},
 		rateLimit = { burst = 2, perSecond = 0.5 },
 		notes = "El costo (50/150/400) sale de Config, nunca del cliente. "
