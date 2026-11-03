@@ -115,6 +115,14 @@ local function loadProfile(player: Player)
 
 	profiles[player] = profile
 	sendSync(player)
+
+	if RunService:IsStudio() then
+		local d = profile.Data
+		print(
+			`[DataService] perfil cargado (Mock): {player.UserId} · v{d.SchemaVersion} · nivel {d.Level} · `
+				.. `{d.Seeds} Semillas · {d.Equipped.Slot1}/{d.Equipped.Slot2}`
+		)
+	end
 end
 
 local function onPlayerRemoving(player: Player)
