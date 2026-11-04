@@ -25,6 +25,7 @@ local CreaturesConfig = require(Shared:WaitForChild("Config"):WaitForChild("Crea
 local ToolsConfig = require(Shared.Config:WaitForChild("Tools"))
 local CreatureRules = require(script.Parent.CreatureRules)
 local DataService = require(script.Parent.DataService)
+local AssetLibrary = require(script.Parent.AssetLibrary)
 local ToolService = require(script.Parent.ToolService)
 
 local A = Types.Attributes
@@ -54,7 +55,18 @@ type Creature = {
 	history: { CreatureRules.Sample },
 	saved: { [BasePart]: number }, -- transparencias originales mientras está disipada
 	respawn: boolean, -- false: al disiparse desaparece (criaturas de misión o de acertijo)
+	wings: { Wing }?, -- alas que aletean (modelo real de la polilla)
 }
+
+type Wing = {
+	part: BasePart,
+	rel: CFrame, -- posición del ala respecto al cuerpo, en reposo
+	hinge: Vector3, -- bisagra (borde interior del ala) en el espacio del cuerpo
+	side: number, -- -1 o 1
+}
+
+local FLAP_SPEED = 14 -- rad/s
+local FLAP_ANGLE = 0.55 -- rad
 
 local CreatureService = {}
 
@@ -327,6 +339,14 @@ local function step(c: Creature, dt: number, now: number, serverNow: number, roo
 		c.model:PivotTo(CFrame.new(drawPos) * c.model:GetPivot().Rotation)
 	end
 
+	if c.wings and c.model.PrimaryPart then
+		local body = c.model.PrimaryPart.CFrame
+		local a = math.sin(now * FLAP_SPEED + c.home.X) * FLAP_ANGLE
+		for _, w in c.wings do
+			w.part.CFrame = body * CFrame.new(w.hinge) * CFrame.Angles(0, 0, w.side * a) * CFrame.new(-w.hinge) * w.rel
+		end
+	end
+
 	table.insert(c.history, { t = serverNow, pos = drawPos })
 	CreatureRules.trimHistory(c.history, serverNow, HISTORY_KEEP)
 end
@@ -365,7 +385,21 @@ function CreatureService.register(model: Model, respawn: boolean?)
 		history = {},
 		saved = {},
 		respawn = respawn ~= false,
+		wings = nil,
 	}
+	local body = model.PrimaryPart
+	local left, right = model:FindFirstChild("AlaIzq"), model:FindFirstChild("AlaDer")
+	if body and left and right and left:IsA("BasePart") and right:IsA("BasePart") then
+		local wings = {}
+		for _, w in { left, right } do
+			local rel = body.CFrame:ToObjectSpace(w.CFrame)
+			local side = if rel.Position.X >= 0 then 1 else -1
+			-- bisagra: el borde del ala más cercano al cuerpo
+			local hinge = Vector3.new(rel.Position.X - side * w.Size.X / 2, rel.Position.Y, rel.Position.Z)
+			table.insert(wings, { part = w, rel = rel, hinge = hinge, side = side })
+		end
+		c.wings = wings
+	end
 	creatures[model] = c
 	setMeter(c, 1)
 	setState(c, "Idle")
@@ -387,18 +421,30 @@ local spawnCounter = 0
 	respawn = false: desaparece al disiparse.
 ]]
 function CreatureService.spawn(id: string, pos: Vector3, parent: Instance, respawn: boolean?): Model
-	local look = PLACEHOLDER[id] or { size = 3, color = Color3.new(1, 1, 1) }
 	spawnCounter += 1
-	local model = Instance.new("Model")
+	local model: Model
+	local asset = AssetLibrary.clone(id, false)
+	if asset then
+		model = asset
+		-- Modelo real (assets/roblox): la pieza principal es "Cuerpo" o la única que tenga
+		local main = model:FindFirstChild("Cuerpo")
+			or model:FindFirstChild(id)
+			or model:FindFirstChildWhichIsA("BasePart")
+		model.PrimaryPart = main :: BasePart
+		model:PivotTo(CFrame.new(pos))
+	else
+		local look = PLACEHOLDER[id] or { size = 3, color = Color3.new(1, 1, 1) }
+		model = Instance.new("Model")
+		local body = Instance.new("Part")
+		body.Name = "Body"
+		body.Anchored = true
+		body.Size = Vector3.one * look.size
+		body.Color = look.color
+		body.Position = pos
+		body.Parent = model
+		model.PrimaryPart = body
+	end
 	model.Name = id
-	local body = Instance.new("Part")
-	body.Name = "Body"
-	body.Anchored = true
-	body.Size = Vector3.one * look.size
-	body.Color = look.color
-	body.Position = pos
-	body.Parent = model
-	model.PrimaryPart = body
 	model:SetAttribute(A.CreatureId, id)
 	model:SetAttribute(A.NetId, `spawn_{id}_{spawnCounter}`)
 	model.Parent = parent

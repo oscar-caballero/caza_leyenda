@@ -3,6 +3,8 @@
 *.rbxlx
 *.rbxm
 *.rbxmx
+# Modelos importados en Studio (mallas subidas a la cuenta del proyecto): sí se versionan
+!assets/roblox/*.rbxm
 
 # Herramientas locales
 /Packages/

@@ -21,6 +21,7 @@ local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Typ
 local ToolService = require(script.Parent.ToolService)
 local MaranaService = require(script.Parent.MaranaService)
 local WorldRegistry = require(script.Parent.WorldRegistry)
+local AssetLibrary = require(script.Parent.AssetLibrary)
 
 local SAFE_RADIUS = 10
 local STONE = Color3.fromRGB(176, 168, 156)
@@ -71,6 +72,8 @@ local function label(parent: BasePart, text: string, color: Color3, size: number
 	bb.Parent = parent
 end
 
+local originalTexture: { [BasePart]: string } = {}
+
 local function setLit(head: BasePart, lit: boolean)
 	if lit then
 		litFaroles[head] = true
@@ -79,6 +82,12 @@ local function setLit(head: BasePart, lit: boolean)
 	end
 	head.Color = if lit then LIT else UNLIT
 	head.Material = if lit then Enum.Material.Neon else Enum.Material.SmoothPlastic
+	if head:IsA("MeshPart") then
+		-- Vidrio del farol real: encendido = brillo cálido sin textura; apagado = su textura
+		originalTexture[head] = originalTexture[head] or head.TextureID
+		head.TextureID = if lit then "" else originalTexture[head]
+		head.Material = if lit then Enum.Material.Neon else Enum.Material.Glass
+	end
 	local light = head:FindFirstChildOfClass("PointLight")
 	if light then
 		light.Enabled = lit
@@ -87,18 +96,30 @@ end
 
 -- Farol: poste + cabeza. La cabeza es la que se activa y la que lleva el NetId.
 local function farol(netId: string, base: Vector3, height: number, lit: boolean, activable: boolean): BasePart
-	part({
-		Name = `Poste {netId}`,
-		Size = Vector3.new(0.8, height, 0.8),
-		Position = base + Vector3.new(0, height / 2, 0),
-		Color = DARK,
-	})
-	local head = part({
-		Name = `Farol {netId}`,
-		Size = Vector3.new(1.8, 1.8, 1.8),
-		Position = base + Vector3.new(0, height + 0.9, 0),
-		CanCollide = false,
-	})
+	-- Modelo real si está importado (assets/roblox/Farol.rbxm); si no, bloques
+	local model = AssetLibrary.clone("Farol", true)
+	local head: BasePart
+	if model then
+		model.Name = `Farol {netId}`
+		AssetLibrary.placeOnGround(model, base)
+		model.Parent = folder
+		head = model:FindFirstChild("Vidrio") :: BasePart
+		head.Name = `Farol {netId}` -- el nombre "Farol ..." es el que enciende SliceBlockout
+		head.CanCollide = false
+	else
+		part({
+			Name = `Poste {netId}`,
+			Size = Vector3.new(0.8, height, 0.8),
+			Position = base + Vector3.new(0, height / 2, 0),
+			Color = DARK,
+		})
+		head = part({
+			Name = `Farol {netId}`,
+			Size = Vector3.new(1.8, 1.8, 1.8),
+			Position = base + Vector3.new(0, height + 0.9, 0),
+			CanCollide = false,
+		})
+	end
 	local light = Instance.new("PointLight")
 	light.Range = 16
 	light.Color = LIT
@@ -199,33 +220,66 @@ local function buildPlaza()
 	anchor("tutorial_polillas", Vector3.new(0, 4, -40))
 
 	-- Kiosco con su farol alto (se enciende con la resortera)
-	part({
-		Name = "Kiosco base",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(2, 22, 22),
-		Position = Vector3.new(0, 1.5, -55),
-		Orientation = Vector3.new(0, 0, 90),
-	})
-	for i = 0, 5 do
-		local a = math.rad(i * 60)
+	local kiosco = AssetLibrary.clone("Kiosco", true)
+	if kiosco then
+		-- La escalinata del modelo mira a -Z: se gira 180° para que dé hacia el spawn
+		AssetLibrary.placeOnGround(kiosco, Vector3.new(0, 1, -55), math.pi)
+		kiosco.Parent = folder
+		farol("farol_kiosco", Vector3.new(0, AssetLibrary.top(kiosco), -55), 3, false, true)
+	else
 		part({
-			Name = "Kiosco columna",
-			Size = Vector3.new(0.8, 9, 0.8),
-			Position = Vector3.new(math.cos(a) * 9, 7, -55 + math.sin(a) * 9),
-			Color = WOOD,
+			Name = "Kiosco base",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(2, 22, 22),
+			Position = Vector3.new(0, 1.5, -55),
+			Orientation = Vector3.new(0, 0, 90),
+		})
+		for i = 0, 5 do
+			local a = math.rad(i * 60)
+			part({
+				Name = "Kiosco columna",
+				Size = Vector3.new(0.8, 9, 0.8),
+				Position = Vector3.new(math.cos(a) * 9, 7, -55 + math.sin(a) * 9),
+				Color = WOOD,
+			})
+		end
+		part({
+			Name = "Kiosco techo",
+			Size = Vector3.new(24, 1.2, 24),
+			Position = Vector3.new(0, 12, -55),
+			Color = DARK,
+		})
+		farol("farol_kiosco", Vector3.new(0, 12.6, -55), 3, false, true)
+	end
+
+	-- Resortera (power-up): el modelo real al doble de tamaño, girando; si no, el cilindro dorado
+	local resorteraModel = AssetLibrary.clone("Resortera", false)
+	local resortera: BasePart
+	if resorteraModel then
+		resorteraModel:ScaleTo(2)
+		AssetLibrary.placeOnGround(resorteraModel, Vector3.new(8, 1.5, -38))
+		resorteraModel.Parent = folder
+		resortera = resorteraModel:FindFirstChildWhichIsA("BasePart") :: BasePart
+		resortera.CanTouch = true
+		local spinBase = resorteraModel:GetPivot()
+		task.spawn(function()
+			local t = 0
+			while resorteraModel.Parent do
+				t += task.wait()
+				resorteraModel:PivotTo(spinBase * CFrame.new(0, math.sin(t * 2) * 0.3, 0) * CFrame.Angles(0, t, 0))
+			end
+		end)
+	else
+		resortera = part({
+			Name = "Resortera",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(1, 3, 3),
+			Position = Vector3.new(8, 2.5, -38),
+			Color = Color3.fromRGB(240, 200, 60),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
 		})
 	end
-	part({ Name = "Kiosco techo", Size = Vector3.new(24, 1.2, 24), Position = Vector3.new(0, 12, -55), Color = DARK })
-	farol("farol_kiosco", Vector3.new(0, 12.6, -55), 3, false, true)
-	local resortera = part({
-		Name = "Resortera",
-		Shape = Enum.PartType.Cylinder,
-		Size = Vector3.new(1, 3, 3),
-		Position = Vector3.new(8, 2.5, -38),
-		Color = Color3.fromRGB(240, 200, 60),
-		Material = Enum.Material.Neon,
-		CanCollide = false,
-	})
 	CollectionService:AddTag(resortera, Types.Tags.PowerUpResortera)
 
 	-- M1: enjambres y manivelas (Giratorio → yo-yo)
