@@ -23,3 +23,7 @@ globalTypes.d.luau
 # Generados por scripts/check.sh
 roblox.yml
 .globalTypes.version
+
+# Python (scripts de Blender)
+__pycache__/
+*.pyc
