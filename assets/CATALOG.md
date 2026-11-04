@@ -4,7 +4,10 @@ Requisito de D-010: cada asset registra herramienta, licencia, prompt, procedenc
 
 | Asset | Herramienta | Licencia | Prompt (IA) | Procedencia cultural | Triángulos (presupuesto) | Aprobación humana |
 |---|---|---|---|---|---|---|
-| Polilla de Papel (`PolillaPapel.fbx`) | Blender 5.2 por código (`assets/src/polilla_papel.py`), sin IA | Propia del proyecto | — | ✏️ Invención del juego (criatura del Olvido, nivel 3). Origami con hoja de cuaderno rayado; sin motivos de ninguna comunidad | 160 (≤400) | Pendiente |
+| Polilla de Papel (`PolillaPapel.fbx`) | Blender 5.2 por código (`assets/src/polilla_papel.py`), sin IA | Propia del proyecto | — | ✏️ Invención del juego (criatura del Olvido, nivel 3). Origami con hoja de cuaderno rayado; sin motivos de ninguna comunidad | 160 (≤400) | ✅ Aprobada por el responsable (2026-11-03) |
+| Honda (`Honda.fbx`) | Blender 5.2 por código (`assets/src/honda.py`), sin IA | Propia del proyecto | — | 📜 Juguete tradicional (honda de cordeles con cuna). Tejido de franjas **originales** naranja y crema; no reproduce textiles de ninguna comunidad | 460 (≤1,500) | Pendiente |
+| Yo-yo (`Yoyo.fbx`) | Blender 5.2 por código (`assets/src/yoyo.py`), sin IA | Propia del proyecto | — | 📜 Juguete tradicional de madera torneada. Pintura con franjas originales en cian (color del efecto, D-004) | 516 (≤1,500) | Pendiente |
+| Resortera (`Resortera.fbx`) | Blender 5.2 por código (`assets/src/resortera.py`), sin IA | Propia del proyecto | — | 📜 Juguete tradicional (horqueta, ligas y bolsa). Madera dorada por ser el power-up (D-013) | 232 (≤1,500) | Pendiente |
 
 ## Cómo se generan
 

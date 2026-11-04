@@ -184,8 +184,152 @@ def report(name, objects, budget):
         total += t
         print(f"[{name}] {o.name}: {t} triángulos")
     lo, hi = budget
-    status = "OK" if lo <= total <= hi else "FUERA DE PRESUPUESTO"
+    if total > hi:
+        status = "SE PASA DEL PRESUPUESTO"
+    elif total < lo:
+        status = "OK (por debajo del rango: más ligero para celular)"
+    else:
+        status = "OK"
     print(f"[{name}] TOTAL {total} triángulos (presupuesto {lo}–{hi}): {status}")
     if total > hi:
         sys.exit(1)
     return total
+
+
+# ---------------------------------------------------------------------------
+# Primitivas paramétricas (devuelven verts, faces para combinarlas libremente)
+# ---------------------------------------------------------------------------
+
+
+def _frame(tangent):
+    from mathutils import Vector
+
+    t = Vector(tangent).normalized()
+    up = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
+    n = t.cross(up).normalized()
+    b = t.cross(n).normalized()
+    return n, b
+
+
+def tube(points, radius, sides=6, cap=True):
+    """Tubo a lo largo de una polilínea (cordeles, cuerdas, ligas). radius puede ser número o lista."""
+    from mathutils import Vector
+
+    pts = [Vector(p) for p in points]
+    radii = radius if isinstance(radius, (list, tuple)) else [radius] * len(pts)
+    verts, faces = [], []
+    for i, p in enumerate(pts):
+        tangent = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)])
+        n, b = _frame(tangent)
+        for s in range(sides):
+            a = 2 * math.pi * s / sides
+            v = p + (n * math.cos(a) + b * math.sin(a)) * radii[i]
+            verts.append(tuple(v))
+    for i in range(len(pts) - 1):
+        for s in range(sides):
+            a = i * sides + s
+            bb = i * sides + (s + 1) % sides
+            faces.append((a, bb, bb + sides, a + sides))
+    if cap:
+        faces.append(tuple(reversed(range(sides))))
+        last = (len(pts) - 1) * sides
+        faces.append(tuple(range(last, last + sides)))
+    return verts, faces
+
+
+def cylinder(radius, z0, z1, sides=16, center=(0, 0), r_top=None):
+    """Cilindro (o tronco de cono) vertical entre z0 y z1."""
+    cx, cy = center
+    rt = radius if r_top is None else r_top
+    verts = []
+    for z, r in ((z0, radius), (z1, rt)):
+        for s in range(sides):
+            a = 2 * math.pi * s / sides
+            verts.append((cx + r * math.cos(a), cy + r * math.sin(a), z))
+    faces = [(s, (s + 1) % sides, sides + (s + 1) % sides, sides + s) for s in range(sides)]
+    faces.append(tuple(reversed(range(sides))))
+    faces.append(tuple(range(sides, 2 * sides)))
+    return verts, faces
+
+
+def lathe(profile, sides=16):
+    """Sólido de revolución alrededor de Z. profile = [(radio, z)] de abajo hacia arriba."""
+    verts, faces = [], []
+    for r, z in profile:
+        for s in range(sides):
+            a = 2 * math.pi * s / sides
+            verts.append((r * math.cos(a), r * math.sin(a), z))
+    for i in range(len(profile) - 1):
+        for s in range(sides):
+            a = i * sides + s
+            b = i * sides + (s + 1) % sides
+            faces.append((a, b, b + sides, a + sides))
+    if profile[0][0] > 0:
+        faces.append(tuple(reversed(range(sides))))
+    if profile[-1][0] > 0:
+        last = (len(profile) - 1) * sides
+        faces.append(tuple(range(last, last + sides)))
+    return verts, faces
+
+
+def combine(*parts):
+    """Une varias (verts, faces) en una sola malla."""
+    verts, faces = [], []
+    for v, f in parts:
+        off = len(verts)
+        verts += list(v)
+        faces += [tuple(i + off for i in face) for face in f]
+    return verts, faces
+
+
+def transform(part, offset=(0, 0, 0), rot_x=0.0, rot_y=0.0, rot_z=0.0):
+    from mathutils import Euler, Vector
+
+    v, f = part
+    e = Euler((rot_x, rot_y, rot_z), "XYZ")
+    o = Vector(offset)
+    out = []
+    for p in v:
+        q = Vector(p)
+        q.rotate(e)
+        out.append(tuple(q + o))
+    return out, f
+
+
+def piece(name, part, mat, rect, axis=("x", "z")):
+    """Crea un objeto con su región del atlas (UV por proyección)."""
+    obj = mesh_object(name, *part)
+    obj.data.materials.append(mat)
+    uv_from_rect(obj, rect, axis=axis)
+    flat_shade(obj)
+    return obj
+
+
+def join(objects, name):
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in objects:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = objects[0]
+    bpy.ops.object.join()
+    obj = bpy.context.view_layer.objects.active
+    obj.name = name
+    obj.data.name = name
+    return obj
+
+
+def paint_regions(regions):
+    """Painter de atlas por regiones: [(rect_uv, fn(u, v) -> (r, g, b))] con u, v en 0..1 locales."""
+
+    def painter(px, w, h):
+        for y in range(h):
+            for x in range(w):
+                u, v = (x + 0.5) / w, (y + 0.5) / h
+                color = (1.0, 0.0, 1.0)
+                for (u0, v0, u1, v1), fn in regions:
+                    if u0 <= u < u1 and v0 <= v < v1:
+                        color = fn((u - u0) / (u1 - u0), (v - v0) / (v1 - v0))
+                        break
+                i = (y * w + x) * 4
+                px[i : i + 4] = [color[0], color[1], color[2], 1.0]
+
+    return painter
