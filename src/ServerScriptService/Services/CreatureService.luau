@@ -53,6 +53,7 @@ type Creature = {
 	nextWander: number,
 	history: { CreatureRules.Sample },
 	saved: { [BasePart]: number }, -- transparencias originales mientras está disipada
+	respawn: boolean, -- false: al disiparse desaparece (criaturas de misión o de acertijo)
 }
 
 local CreatureService = {}
@@ -170,6 +171,13 @@ local function onHit(player: Player, tool: string, model: Model, damage: number)
 		local helpers = CreatureRules.eligible(c.contributions, MIN_SHARE)
 		for _, fn in resolvedListeners do
 			task.spawn(fn, model, helpers)
+		end
+		if not c.respawn then
+			task.delay(1.5, function()
+				creatures[model] = nil
+				model:Destroy()
+			end)
+			return
 		end
 		task.delay(c.cfg.respawn or 10, function()
 			if creatures[model] ~= c then
@@ -327,7 +335,7 @@ end
 -- API pública
 ------------------------------------------------------------------------
 
-function CreatureService.register(model: Model)
+function CreatureService.register(model: Model, respawn: boolean?)
 	local id = model:GetAttribute(A.CreatureId)
 	local netId = model:GetAttribute(A.NetId)
 	assert(
@@ -356,6 +364,7 @@ function CreatureService.register(model: Model)
 		nextWander = 0,
 		history = {},
 		saved = {},
+		respawn = respawn ~= false,
 	}
 	creatures[model] = c
 	setMeter(c, 1)
@@ -364,6 +373,47 @@ function CreatureService.register(model: Model)
 	model.Destroying:Connect(function()
 		creatures[model] = nil
 	end)
+end
+
+-- Tamaño provisional (blockout) hasta que llegue el arte del Artista 3D
+local PLACEHOLDER = {
+	PolillaPapel = { size = 2, color = Color3.fromRGB(245, 240, 225) },
+	Rumor = { size = 8, color = Color3.fromRGB(150, 150, 160) },
+}
+local spawnCounter = 0
+
+--[[
+	Crea una criatura de nivel 3 en `pos` (misiones y acertijos).
+	respawn = false: desaparece al disiparse.
+]]
+function CreatureService.spawn(id: string, pos: Vector3, parent: Instance, respawn: boolean?): Model
+	local look = PLACEHOLDER[id] or { size = 3, color = Color3.new(1, 1, 1) }
+	spawnCounter += 1
+	local model = Instance.new("Model")
+	model.Name = id
+	local body = Instance.new("Part")
+	body.Name = "Body"
+	body.Anchored = true
+	body.Size = Vector3.one * look.size
+	body.Color = look.color
+	body.Position = pos
+	body.Parent = model
+	model.PrimaryPart = body
+	model:SetAttribute(A.CreatureId, id)
+	model:SetAttribute(A.NetId, `spawn_{id}_{spawnCounter}`)
+	model.Parent = parent
+	CreatureService.register(model, respawn)
+	return model
+end
+
+-- ¿Hay una criatura viva de este tipo cerca de pos? (para no duplicar criaturas compartidas)
+function CreatureService.aliveNear(id: string, pos: Vector3, radius: number): boolean
+	for _, c in creatures do
+		if c.id == id and c.state ~= "Resolved" and (c.home - pos).Magnitude <= radius then
+			return true
+		end
+	end
+	return false
 end
 
 -- Criaturas activas (no disipadas) con su posición actual: la usa MaranaService

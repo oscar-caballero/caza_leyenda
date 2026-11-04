@@ -7,7 +7,7 @@
 	  · Rescate: un compañero 2 s a menos de 6 studs sin disparar
 	  · Avisos: Player.Tangled y Player.Freed {reason = "time" | "rescue"}
 
-	  MaranaService.setSafeResolver(fn)   ¿esta posición está junto a un farol encendido?
+	  MaranaService.addSafeResolver(fn)   ¿esta posición está junto a un farol encendido?
 	  MaranaService.setCap(player, n?)    tope (66 en el tutorial); nil = sin tope
 ]]
 
@@ -38,7 +38,16 @@ local MaranaService = {}
 
 local entries: { [Player]: Entry } = {}
 local lastFired: { [Player]: number } = {}
-local safeResolver: ((pos: Vector3) -> boolean)? = nil
+local safeResolvers: { (pos: Vector3) -> boolean } = {}
+
+local function isSafe(pos: Vector3): boolean
+	for _, fn in safeResolvers do
+		if fn(pos) then
+			return true
+		end
+	end
+	return false
+end
 
 local function bindCharacter(player: Player, character: Model)
 	local e = entries[player]
@@ -125,7 +134,7 @@ local function step(dt: number)
 			end
 		end
 
-		local safe = safeResolver ~= nil and safeResolver(pos)
+		local safe = isSafe(pos)
 		local event = MaranaRules.tick(MaranaConfig, s, dt, now, safe, rescuers)
 
 		if event == "tangled" then
@@ -187,8 +196,8 @@ function MaranaService.start()
 	end)
 end
 
-function MaranaService.setSafeResolver(fn: (pos: Vector3) -> boolean)
-	safeResolver = fn
+function MaranaService.addSafeResolver(fn: (pos: Vector3) -> boolean)
+	table.insert(safeResolvers, fn)
 end
 
 function MaranaService.setCap(player: Player, cap: number?)

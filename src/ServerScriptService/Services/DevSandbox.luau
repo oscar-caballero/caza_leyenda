@@ -2,7 +2,7 @@
 --[[
 	DevSandbox — Escenario de pruebas SOLO EN STUDIO. En un servidor real no hace nada.
 
-	Crea junto al spawn:
+	Crea a 250 studs del spawn, hacia +X (el origen es de la vertical slice):
 	  · Zona del pueblo (caja verde translúcida): ahí se puede cambiar de herramienta
 	  · 3 Polillas de Papel (cubos blancos, nivel 3)  · Rumor (cubo gris grande, nivel 3)
 	  · Chaneque (cubo verde, nivel 1): las herramientas NO deben hacerle nada
@@ -27,6 +27,9 @@ local MaranaService = require(script.Parent.MaranaService)
 local ToolService = require(script.Parent.ToolService)
 
 local DevSandbox = {}
+
+-- A un costado de la vertical slice (que ocupa el origen): camina 250 studs hacia +X
+local ORIGIN = Vector3.new(250, 0, 0)
 
 local function part(props: { [string]: any }, parent: Instance): BasePart
 	local p = Instance.new("Part")
@@ -64,7 +67,7 @@ function DevSandbox.start()
 	local zone = part({
 		Name = "ZonaPueblo",
 		Size = Vector3.new(40, 20, 40),
-		Position = Vector3.new(0, 10, 0),
+		Position = ORIGIN + Vector3.new(0, 10, 0),
 		Transparency = 0.9,
 		CanCollide = false,
 		CanQuery = false,
@@ -75,18 +78,18 @@ function DevSandbox.start()
 
 	local paper = Color3.fromRGB(245, 240, 225)
 	local level3 = {
-		creature(folder, "PolillaPapel", "dev_polilla_1", Vector3.new(0, 4, -35), 2, paper),
-		creature(folder, "PolillaPapel", "dev_polilla_2", Vector3.new(-8, 4, -40), 2, paper),
-		creature(folder, "PolillaPapel", "dev_polilla_3", Vector3.new(8, 4, -40), 2, paper),
-		creature(folder, "Rumor", "dev_rumor", Vector3.new(25, 6, -55), 8, Color3.fromRGB(150, 150, 160)),
+		creature(folder, "PolillaPapel", "dev_polilla_1", ORIGIN + Vector3.new(0, 4, -35), 2, paper),
+		creature(folder, "PolillaPapel", "dev_polilla_2", ORIGIN + Vector3.new(-8, 4, -40), 2, paper),
+		creature(folder, "PolillaPapel", "dev_polilla_3", ORIGIN + Vector3.new(8, 4, -40), 2, paper),
+		creature(folder, "Rumor", "dev_rumor", ORIGIN + Vector3.new(25, 6, -55), 8, Color3.fromRGB(150, 150, 160)),
 	}
 	-- Nivel 1: NO se registra en CreatureService; las herramientas no le hacen nada
-	creature(folder, "Chaneque", "dev_chaneque", Vector3.new(-14, 2, -22), 2.5, Color3.fromRGB(60, 150, 70))
+	creature(folder, "Chaneque", "dev_chaneque", ORIGIN + Vector3.new(-14, 2, -22), 2.5, Color3.fromRGB(60, 150, 70))
 
 	local diana = part({
 		Name = "Diana (Activable)",
 		Size = Vector3.new(4, 4, 1),
-		Position = Vector3.new(-25, 8, -60),
+		Position = ORIGIN + Vector3.new(-25, 8, -60),
 		Color = Color3.fromRGB(220, 60, 60),
 	}, folder)
 	CollectionService:AddTag(diana, Types.Tags.Activable)
@@ -94,7 +97,7 @@ function DevSandbox.start()
 	local palanca = part({
 		Name = "Palanca (Giratorio)",
 		Size = Vector3.new(1.5, 3, 1.5),
-		Position = Vector3.new(-6, 1.5, -14),
+		Position = ORIGIN + Vector3.new(-6, 1.5, -14),
 		Color = Color3.fromRGB(90, 90, 220),
 	}, folder)
 	CollectionService:AddTag(palanca, Types.Tags.Giratorio)
@@ -103,7 +106,7 @@ function DevSandbox.start()
 		Name = "Resortera",
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(1, 3, 3),
-		Position = Vector3.new(8, 1.5, -8),
+		Position = ORIGIN + Vector3.new(8, 1.5, -8),
 		Color = Color3.fromRGB(240, 200, 60),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -111,14 +114,14 @@ function DevSandbox.start()
 	local farol = part({
 		Name = "Farol (prueba)",
 		Size = Vector3.new(0.8, 7, 0.8),
-		Position = Vector3.new(-12, 3.5, 4),
+		Position = ORIGIN + Vector3.new(-12, 3.5, 4),
 		Color = Color3.fromRGB(60, 50, 40),
 	}, folder)
 	local light = part({
 		Name = "Luz",
 		Shape = Enum.PartType.Ball,
 		Size = Vector3.one * 1.6,
-		Position = Vector3.new(-12, 7.5, 4),
+		Position = ORIGIN + Vector3.new(-12, 7.5, 4),
 		Color = Color3.fromRGB(255, 200, 110),
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -127,7 +130,7 @@ function DevSandbox.start()
 	glow.Range = 14
 	glow.Color = light.Color
 	glow.Parent = light
-	MaranaService.setSafeResolver(function(pos)
+	MaranaService.addSafeResolver(function(pos)
 		return (pos - farol.Position).Magnitude <= 8
 	end)
 
