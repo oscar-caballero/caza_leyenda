@@ -97,6 +97,10 @@ def uv_from_rect(obj, rect, axis=("x", "y")):
     bmin = min(c[b] for c in coords)
     bmax = max(c[b] for c in coords)
     u0, v0, u1, v1 = rect
+    # Margen hacia adentro: evita que caras justo en el borde muestreen la región vecina
+    # (o den la vuelta al otro lado del atlas)
+    mu, mv = (u1 - u0) * 0.03, (v1 - v0) * 0.03
+    u0, u1, v0, v1 = u0 + mu, u1 - mu, v0 + mv, v1 - mv
     for poly in mesh.polygons:
         for li in poly.loop_indices:
             co = mesh.vertices[mesh.loops[li].vertex_index].co
@@ -333,3 +337,15 @@ def paint_regions(regions):
                 px[i : i + 4] = [color[0], color[1], color[2], 1.0]
 
     return painter
+
+
+def box(size, center=(0, 0, 0)):
+    """Caja alineada a los ejes. size = (sx, sy, sz)."""
+    sx, sy, sz = (c / 2 for c in size)
+    cx, cy, cz = center
+    v = [
+        (cx - sx, cy - sy, cz - sz), (cx + sx, cy - sy, cz - sz), (cx + sx, cy + sy, cz - sz), (cx - sx, cy + sy, cz - sz),
+        (cx - sx, cy - sy, cz + sz), (cx + sx, cy - sy, cz + sz), (cx + sx, cy + sy, cz + sz), (cx - sx, cy + sy, cz + sz),
+    ]
+    f = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    return v, f
