@@ -46,7 +46,7 @@ local Creatures: { [string]: CreatureDef } = {
 		fleeSeconds = 1.5,
 		aggroRadius = 30,
 		leashRadius = 25,
-		keepDistance = 6,
+		keepDistance = 3, -- se pega al jugador: así lo "toca" (Maraña, D-019)
 		respawn = 8,
 		rewards = { xp = 5, firstSeeds = 0 },
 	},

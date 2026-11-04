@@ -8,6 +8,7 @@
 	  · Chaneque (cubo verde, nivel 1): las herramientas NO deben hacerle nada
 	  · Diana "Activable" (honda)  · Palanca "Giratorio" (yo-yo)
 	  · Resortera (cilindro dorado): disparo rápido por 8 s
+	  · Farol encendido (poste con luz): a menos de 8 studs la Maraña se vacía rápido
 	Y regala 600 Semillas (en el Mock) para probar mejoras.
 
 	Las criaturas de nivel 3 se registran en CreatureService (se mueven, huyen y reaparecen).
@@ -22,6 +23,7 @@ local RunService = game:GetService("RunService")
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local CreatureService = require(script.Parent.CreatureService)
 local DataService = require(script.Parent.DataService)
+local MaranaService = require(script.Parent.MaranaService)
 local ToolService = require(script.Parent.ToolService)
 
 local DevSandbox = {}
@@ -106,6 +108,29 @@ function DevSandbox.start()
 		Material = Enum.Material.Neon,
 		CanCollide = false,
 	}, folder)
+	local farol = part({
+		Name = "Farol (prueba)",
+		Size = Vector3.new(0.8, 7, 0.8),
+		Position = Vector3.new(-12, 3.5, 4),
+		Color = Color3.fromRGB(60, 50, 40),
+	}, folder)
+	local light = part({
+		Name = "Luz",
+		Shape = Enum.PartType.Ball,
+		Size = Vector3.one * 1.6,
+		Position = Vector3.new(-12, 7.5, 4),
+		Color = Color3.fromRGB(255, 200, 110),
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+	}, folder)
+	local glow = Instance.new("PointLight")
+	glow.Range = 14
+	glow.Color = light.Color
+	glow.Parent = light
+	MaranaService.setSafeResolver(function(pos)
+		return (pos - farol.Position).Magnitude <= 8
+	end)
+
 	folder.Parent = workspace
 	CollectionService:AddTag(resortera, Types.Tags.PowerUpResortera)
 
@@ -149,7 +174,7 @@ function DevSandbox.start()
 		task.spawn(gift, p)
 	end
 
-	print("[DevSandbox] listo: 3 polillas, rumor, chaneque, diana, palanca, resortera y zona del pueblo")
+	print("[DevSandbox] listo: 3 polillas, rumor, chaneque, diana, palanca, resortera, farol y zona del pueblo")
 end
 
 return DevSandbox

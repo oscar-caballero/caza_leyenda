@@ -1,6 +1,6 @@
 --!strict
 --[[
-	Shared/Types — Contrato de tipos del juego (APROBADO v1.0, 2026-11-03 — D-016)
+	Shared/Types — Contrato de tipos del juego (APROBADO v1.1, 2026-11-03 — D-016, enmienda D-019)
 
 	ESTADO: APROBADO y CONGELADO (D-016). Queda
 	CONGELADO: cualquier cambio requiere una decisión nueva en docs/decisiones.md
@@ -157,7 +157,9 @@ end
 Types.Attributes = table.freeze({
 	NetId = "NetId", -- string: id estable de la instancia
 	CreatureId = "CreatureId", -- string: CreatureId
-	OlvidoMeter = "OlvidoMeter", -- number 0..1: medidor de Olvido (no barra de vida, D-004)
+	-- number 0..1. En criaturas: medidor de Olvido (no barra de vida, D-004).
+	-- En el Character del jugador: la Maraña (D-019); 1 = Enredado.
+	OlvidoMeter = "OlvidoMeter",
 	EncounterState = "EncounterState", -- "Idle" | "Active" | "Resolved"
 })
 
@@ -184,6 +186,8 @@ export type NoticeKey =
 	| "Tool.NotEnoughSeeds"
 	| "Tool.EquipOnlyInTown"
 	| "Level.Up"
+	| "Player.Tangled" -- D-019: la Maraña se llenó
+	| "Player.Freed" -- D-019: args.reason = "time" | "rescue"
 
 export type PuzzleResult = "Solved" | "Failed" | "Rejected"
 
