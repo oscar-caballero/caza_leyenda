@@ -1,4 +1,6 @@
 std = "roblox"
+# Código de terceros copiado tal cual (D-017)
+exclude = ["src/ServerScriptService/Vendor/*"]
 
 [lints]
 global_usage = "deny"

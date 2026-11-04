@@ -154,6 +154,15 @@ QA continuo (unos 20 % del esfuerzo) desde la semana 2.
 - Perfil `SCHEMA_VERSION = 1`. Cualquier cambio sube la versión y lleva su migración.
 - El ajuste de tipos que salga en `luau-lsp` (sin ejecutar aún) se permite si no cambia el contrato.
 
+## D-017 · Persistencia: DataService sobre ProfileStore (decisión del responsable, 2026-11-03)
+
+- **Librería:** ProfileStore de MadStudio copiada en `src/ServerScriptService/Vendor/`, fijada al commit `45c9847` (Apache-2.0). Sin Wally.
+- **Almacén:** `PlayerData`, llave `Player_<UserId>`. En Studio se usa `ProfileStore.Mock`.
+- **Carga:** primero se revisa la versión (un perfil de una versión más nueva expulsa al jugador **sin modificarlo**). Después migraciones `[n] → n+1`, `Reconcile()` y sanitización de topes e ids.
+- **Mutaciones:** solo `DataService.grantReward` (idempotente por `RewardId`), `spendSeeds` (cobro y efecto atómicos) y `update`. Se aplican sobre una copia y se escriben solo si no fallan. Tras cada una, `ProfileSync` con debounce de 0.2 s.
+- **Fallos:** si no carga en 15 s o la sesión pasa a otro servidor, se expulsa al jugador con un mensaje fijo. Nunca se juega con un perfil temporal.
+- **Pendiente:** la prueba de D-011 (500 ciclos sin pérdida) requiere Open Cloud y el place de pruebas.
+
 ## Siguiente paso
 
 Semana 2 de D-012: preparar el repo (git + Rojo + selene/StyLua/luau-lsp + CI) y después implementar `Net` (validación de esquema y rate limit), ProfileStore, ToolBase (honda + yo-yo) y CreatureBase.

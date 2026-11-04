@@ -16,7 +16,7 @@ echo "== StyLua";   stylua --check src tests
 echo "== selene";   selene src
 echo "== sourcemap"; rojo sourcemap default.project.json -o sourcemap.json
 echo "== luau-lsp"; luau-lsp analyze --platform=roblox --sourcemap=sourcemap.json \
-	--definitions=@roblox=globalTypes.d.luau src
+	--definitions=@roblox=globalTypes.d.luau --ignore="**/Vendor/**" src
 if compgen -G "tests/unit/*.luau" >/dev/null; then
 	echo "== Lune (unit)"
 	for t in tests/unit/*.luau; do lune run "$t"; done
