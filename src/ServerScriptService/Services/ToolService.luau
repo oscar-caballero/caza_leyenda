@@ -10,8 +10,8 @@
 	  ToolService.onHit(fn)       golpe a una criatura de nivel 3 → CreatureService baja el medidor
 	  ToolService.onActivate(fn)  herramienta activó un objeto con su tag → QuestService
 
-	PENDIENTE (CreatureBase): rebobinado de hasta 250 ms (D-009). Requiere historial de
-	posiciones de las criaturas; hoy `clientTime` se valida pero no se usa.
+	Rebobinado (D-009): si el spherecast actual no toca una criatura, se pregunta al
+	resolvedor que registra CreatureService (historial de posiciones, máx. 250 ms).
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -41,6 +41,15 @@ local ToolService = {}
 local states: { [Player]: PlayerState } = {}
 local hitListeners: { HitListener } = {}
 local activateListeners: { ActivateListener } = {}
+
+export type RewindResolver = (
+	origin: Vector3,
+	aim: Vector3,
+	range: number,
+	radius: number,
+	clientTime: number
+) -> Model?
+local rewindResolver: RewindResolver? = nil
 
 local function getState(player: Player): PlayerState
 	local s = states[player]
@@ -149,19 +158,24 @@ local function onToolUse(player: Player, payload: Net.Payload)
 	params.FilterDescendantsInstances = exclude
 	local result = workspace:Spherecast(origin, def.radius, aim * def.range, params)
 
+	-- 1) Impacto con las posiciones actuales; 2) si no tocó criatura, rebobinado (≤250 ms)
+	local creature: Model? = nil
 	if result then
-		local creature, creatureId = findCreature(result.Instance)
-		if creature and creatureId then
-			local cfg = CreaturesConfig[creatureId]
-			if ToolRules.canDamage(cfg) then
-				local tier = view.ToolTiers[tool] or 0
-				local dmg = ToolRules.damage(ToolsConfig, tool, tier, boosted, cfg)
-				emit(hitListeners, player, tool, creature, dmg)
-			end
-		end
+		creature = findCreature(result.Instance)
 		local target = findTagged(result.Instance, def.activatesTag)
 		if target then
 			emit(activateListeners, player, tool, target)
+		end
+	end
+	if creature == nil and rewindResolver then
+		creature = rewindResolver(origin, aim, def.range, def.radius, payload.clientTime)
+	end
+	if creature then
+		local cfg = CreaturesConfig[creature:GetAttribute(Types.Attributes.CreatureId) :: string]
+		if ToolRules.canDamage(cfg) then
+			local tier = view.ToolTiers[tool] or 0
+			local dmg = ToolRules.damage(ToolsConfig, tool, tier, boosted, cfg)
+			emit(hitListeners, player, tool, creature, dmg)
 		end
 	end
 
@@ -274,6 +288,10 @@ end
 
 function ToolService.onHit(fn: HitListener)
 	table.insert(hitListeners, fn)
+end
+
+function ToolService.setRewindResolver(fn: RewindResolver)
+	rewindResolver = fn
 end
 
 function ToolService.onActivate(fn: ActivateListener)

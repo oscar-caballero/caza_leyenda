@@ -163,6 +163,18 @@ QA continuo (unos 20 % del esfuerzo) desde la semana 2.
 - **Fallos:** si no carga en 15 s o la sesión pasa a otro servidor, se expulsa al jugador con un mensaje fijo. Nunca se juega con un perfil temporal.
 - **Pendiente:** la prueba de D-011 (500 ciclos sin pérdida) requiere Open Cloud y el place de pruebas.
 
+## D-018 · Criaturas del Olvido y sus recompensas (decisión del responsable, 2026-11-03)
+
+- **CreatureBase aprobado y probado en Studio:** medidor de Olvido, movimiento en el servidor, freno del yo-yo, escalado cooperativo D-008 y rebobinado D-009 de 250 ms con línea de vista.
+- **Economía aprobada** (`Config/Creatures.luau`):
+
+| Criatura | Olvido | XP por disiparla (a quien aportó ≥10 %) | Semillas (solo la 1.ª vez, `defeat:<NetId>`) | Reaparece |
+|---|---|---|---|---|
+| Polilla de Papel | 30 | 5 | 0 | 8 s |
+| Rumor | 400 | 60 | 40 | 30 s |
+
+- **Pendiente de diseño:** daño de las criaturas al jugador (no hay vida del jugador definida) y el combo del Rumor (marcar con la honda y traer sus pedazos con el yo-yo). Vigilar con telemetría el farmeo de XP con las polillas.
+
 ## Siguiente paso
 
-Semana 2 de D-012: preparar el repo (git + Rojo + selene/StyLua/luau-lsp + CI) y después implementar `Net` (validación de esquema y rate limit), ProfileStore, ToolBase (honda + yo-yo) y CreatureBase.
+Semana 2 de D-012 terminada (repo + CI, `Net`, DataService, ToolBase y CreatureBase). Siguiente, semanas 4–6: **vertical slice** (tutorial de ~3 min, 1 criatura original y 3 misiones con QuestService) y prueba con niños.
