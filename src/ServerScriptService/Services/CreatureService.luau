@@ -59,6 +59,9 @@ local CreatureService = {}
 
 local creatures: { [Model]: Creature } = {}
 
+export type CreatureInfo = { model: Model, id: string, pos: Vector3 }
+local resolvedListeners: { (model: Model, helpers: { Player }) -> () } = {}
+
 local function setState(c: Creature, state: string)
 	c.state = state
 	c.model:SetAttribute(A.EncounterState, state)
@@ -164,6 +167,10 @@ local function onHit(player: Player, tool: string, model: Model, damage: number)
 		setState(c, "Resolved")
 		setVisible(c, false)
 		reward(c)
+		local helpers = CreatureRules.eligible(c.contributions, MIN_SHARE)
+		for _, fn in resolvedListeners do
+			task.spawn(fn, model, helpers)
+		end
 		task.delay(c.cfg.respawn or 10, function()
 			if creatures[model] ~= c then
 				return
@@ -357,6 +364,22 @@ function CreatureService.register(model: Model)
 	model.Destroying:Connect(function()
 		creatures[model] = nil
 	end)
+end
+
+-- Criaturas activas (no disipadas) con su posición actual: la usa MaranaService
+function CreatureService.list(): { CreatureInfo }
+	local out = {}
+	for model, c in creatures do
+		if c.state ~= "Resolved" then
+			table.insert(out, { model = model, id = c.id, pos = c.pos })
+		end
+	end
+	return out
+end
+
+-- Una criatura se disipó; `helpers` son quienes aportaron ≥10 % del daño
+function CreatureService.onResolved(fn: (model: Model, helpers: { Player }) -> ())
+	table.insert(resolvedListeners, fn)
 end
 
 function CreatureService.start()

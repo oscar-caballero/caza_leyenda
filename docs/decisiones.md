@@ -175,6 +175,43 @@ QA continuo (unos 20 % del esfuerzo) desde la semana 2.
 
 - **Pendiente de diseño:** daño de las criaturas al jugador (no hay vida del jugador definida) y el combo del Rumor (marcar con la honda y traer sus pedazos con el yo-yo). Vigilar con telemetría el farmeo de XP con las polillas.
 
+## D-019 · La Maraña, tutorial y misiones de la vertical slice (Estudio Roblox + responsable, 2026-11-03)
+
+Reporte de la sesión: https://claude.ai/artifact/FMrZy7fgn7a1uDCySywJh3
+
+**Maraña (medidor del jugador).** Se llama Maraña y su estado lleno, **Enredado**. El jugador se enreda, no se lastima ni se borra. Solo el servidor la calcula, no se guarda en el perfil y al desconectarse vuelve a 0.
+
+| Concepto | Valor |
+|---|---|
+| Toque de Polilla | +8 (máx. 1 por criatura cada 1.2 s) |
+| Embestida del Rumor | +20 |
+| Tope de llenado (suma) | ráfaga de 20 y recarga de **16/s**, así que llenar tarda ≥5 s* |
+| Tras 3 s sin contacto | −10/s |
+| Junto a un farol encendido | −25/s |
+| Criatura disipada (validada por el servidor) | −15 |
+| Tutorial | tope en 66 |
+
+\* Ajuste de implementación: con 20/s y una ráfaga inicial, el mínimo real era 4 s. Con recarga de 16/s se cumple el ≥5 s aprobado (lo verifica un test).
+
+- **Al llenarse:** Enredado 5 s en el sitio, con herramientas bloqueadas y velocidad 8. No gana Maraña durante ese tiempo ni 2 s después. Al salir vuelve a 40. Nunca pierde nada y no hay teletransporte.
+- **Rescate:** un compañero se queda 2 s a menos de 6 studs sin disparar. Si dispara, el contador se reinicia.
+- **Visual:** anillo de 3 segmentos junto al retrato. El cuerpo cambia con partículas, brillo blanco y contorno oscuro; nunca depende solo del color.
+- **Cultural:** sin "Desmemoriado", "¿Quién era yo?", velas, ofrendas, "susto" ni "espanto". En el Rumor se usa papel de periódico, no papel picado.
+
+**Cambio de contrato aprobado (enmienda a D-016).**
+- El atributo `OlvidoMeter` (0..1) también va en el **Character** del jugador; 1 = Enredado.
+- Nuevas claves de Notice: `Player.Tangled` y `Player.Freed`. No hay Remotes nuevos ni cambios en el perfil.
+
+**Vertical slice.** El cementerio queda fuera.
+- **Tutorial (plaza, de noche, ~3 min):** faroles con la honda → página con el yo-yo → 3 polillas (Maraña con tope en 66) → farol del kiosco con la resortera.
+- **M1 "Colores robados"** (plaza y kiosco): 3 enjambres + acertijo Giratorio. **60 XP + 30 Semillas.**
+- **M2 "Señales del camino"** (camino al bosque): Activable + Sonoro; el Chaneque guía con gestos; respeto al monte como conducta. **80 XP + 50 Semillas.**
+- **M3 "Lo que todos repiten"** (río): el Rumor + acertijo cooperativo resoluble en solitario. **100 XP**, además de lo ya aprobado para el Rumor.
+- Recompensas de misión **aprobadas** (economía, D-010).
+- La capa de tradición del Chaneque se publica solo con fuente verificada.
+
+**Prueba con niños:** ≥80 % termina el tutorial sin ayuda; primer disparo en <15 s; 0 llenados en tutorial y M1 y 0.3–2 en M2 y M3; <10 % de abandono tras un llenado; ≥6 de 8 explican qué pasó; ronda sin sonido; ≥30 FPS en el percentil 10 con 8 jugadores Enredados.
+
 ## Siguiente paso
 
-Semana 2 de D-012 terminada (repo + CI, `Net`, DataService, ToolBase y CreatureBase). Siguiente, semanas 4–6: **vertical slice** (tutorial de ~3 min, 1 criatura original y 3 misiones con QuestService) y prueba con niños.
+Semana 2 de D-012 terminada (repo + CI, `Net`, DataService, ToolBase y CreatureBase). Siguiente, semanas 4–6: **vertical slice** según D-019: primero la Maraña, después QuestService con el tutorial y M1–M3, y al final la prueba con niños.

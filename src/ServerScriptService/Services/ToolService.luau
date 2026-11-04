@@ -51,6 +51,12 @@ export type RewindResolver = (
 ) -> Model?
 local rewindResolver: RewindResolver? = nil
 
+-- D-019: la Maraña bloquea herramientas mientras el jugador está Enredado,
+-- y necesita saber quién disparó (disparar reinicia un rescate)
+export type UseGate = (player: Player) -> boolean
+local useGate: UseGate? = nil
+local useListeners: { (player: Player, tool: string) -> () } = {}
+
 local function getState(player: Player): PlayerState
 	local s = states[player]
 	if s == nil then
@@ -129,6 +135,10 @@ local function onToolUse(player: Player, payload: Net.Payload)
 		return
 	end
 
+	if useGate and not useGate(player) then
+		return
+	end
+
 	local state = getState(player)
 	local now = os.clock()
 	local boosted = tool == "Honda" and state.boostedUntil > now
@@ -136,6 +146,7 @@ local function onToolUse(player: Player, payload: Net.Payload)
 		return -- cooldown: se ignora en silencio (el cliente ya lo limita)
 	end
 	state.lastUse[tool] = now
+	emit(useListeners, player, tool)
 
 	local root = rootPart(player)
 	if root == nil then
@@ -288,6 +299,14 @@ end
 
 function ToolService.onHit(fn: HitListener)
 	table.insert(hitListeners, fn)
+end
+
+function ToolService.setUseGate(fn: UseGate)
+	useGate = fn
+end
+
+function ToolService.onUse(fn: (player: Player, tool: string) -> ())
+	table.insert(useListeners, fn)
 end
 
 function ToolService.setRewindResolver(fn: RewindResolver)
