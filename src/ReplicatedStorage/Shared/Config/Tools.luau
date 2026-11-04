@@ -16,6 +16,7 @@ export type ToolDef = {
 	range: number, -- studs
 	radius: number, -- radio del spherecast (apuntado amable para niños en celular)
 	activatesTag: string, -- tag de CollectionService que esta herramienta activa
+	slow: { seconds: number, mult: number }?, -- frena a la criatura golpeada (yo-yo: "frena lo que huye")
 	color: { number }, -- RGB 0..255 (sin Color3 para cargar en Lune). D-004: cada efecto se distingue por color y forma
 }
 
@@ -48,6 +49,7 @@ local Tools = {
 			range = 20,
 			radius = 2,
 			activatesTag = "Giratorio",
+			slow = { seconds = 1.5, mult = 0.3 },
 			color = { 40, 200, 230 },
 		},
 		Matraca = {

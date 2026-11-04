@@ -4,14 +4,14 @@
 
 	Crea junto al spawn:
 	  · Zona del pueblo (caja verde translúcida): ahí se puede cambiar de herramienta
-	  · Polilla de Papel (cubo blanco, nivel 3)  · Rumor (cubo gris grande, nivel 3)
+	  · 3 Polillas de Papel (cubos blancos, nivel 3)  · Rumor (cubo gris grande, nivel 3)
 	  · Chaneque (cubo verde, nivel 1): las herramientas NO deben hacerle nada
 	  · Diana "Activable" (honda)  · Palanca "Giratorio" (yo-yo)
 	  · Resortera (cilindro dorado): disparo rápido por 8 s
 	Y regala 600 Semillas (en el Mock) para probar mejoras.
 
-	Mientras no exista CreatureService, este sandbox escucha ToolService.onHit y baja
-	el atributo OlvidoMeter de las criaturas de prueba.
+	Las criaturas de nivel 3 se registran en CreatureService (se mueven, huyen y reaparecen).
+	El sandbox solo imprime en el Output lo que pasa.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -20,7 +20,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
-local CreaturesConfig = require(ReplicatedStorage.Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+local CreatureService = require(script.Parent.CreatureService)
 local DataService = require(script.Parent.DataService)
 local ToolService = require(script.Parent.ToolService)
 
@@ -38,7 +38,7 @@ local function part(props: { [string]: any }, parent: Instance): BasePart
 	return p
 end
 
-local function creature(folder: Folder, id: string, netId: string, pos: Vector3, size: number, color: Color3)
+local function creature(folder: Folder, id: string, netId: string, pos: Vector3, size: number, color: Color3): Model
 	local model = Instance.new("Model")
 	model.Name = `{id} (prueba)`
 	local body = part({ Name = "Body", Size = Vector3.one * size, Position = pos, Color = color }, model)
@@ -48,6 +48,7 @@ local function creature(folder: Folder, id: string, netId: string, pos: Vector3,
 	model:SetAttribute(Types.Attributes.OlvidoMeter, 1)
 	model:SetAttribute(Types.Attributes.EncounterState, "Idle")
 	model.Parent = folder
+	return model
 end
 
 function DevSandbox.start()
@@ -70,8 +71,14 @@ function DevSandbox.start()
 	}, folder)
 	CollectionService:AddTag(zone, Types.Tags.ZonaPueblo)
 
-	creature(folder, "PolillaPapel", "dev_polilla", Vector3.new(0, 4, -35), 3, Color3.fromRGB(245, 240, 225))
-	creature(folder, "Rumor", "dev_rumor", Vector3.new(18, 6, -45), 8, Color3.fromRGB(150, 150, 160))
+	local paper = Color3.fromRGB(245, 240, 225)
+	local level3 = {
+		creature(folder, "PolillaPapel", "dev_polilla_1", Vector3.new(0, 4, -35), 2, paper),
+		creature(folder, "PolillaPapel", "dev_polilla_2", Vector3.new(-8, 4, -40), 2, paper),
+		creature(folder, "PolillaPapel", "dev_polilla_3", Vector3.new(8, 4, -40), 2, paper),
+		creature(folder, "Rumor", "dev_rumor", Vector3.new(25, 6, -55), 8, Color3.fromRGB(150, 150, 160)),
+	}
+	-- Nivel 1: NO se registra en CreatureService; las herramientas no le hacen nada
 	creature(folder, "Chaneque", "dev_chaneque", Vector3.new(-14, 2, -22), 2.5, Color3.fromRGB(60, 150, 70))
 
 	local diana = part({
@@ -102,23 +109,20 @@ function DevSandbox.start()
 	folder.Parent = workspace
 	CollectionService:AddTag(resortera, Types.Tags.PowerUpResortera)
 
-	-- Sustituto temporal de CreatureService
+	for _, model in level3 do
+		CreatureService.register(model)
+		model:GetAttributeChangedSignal(Types.Attributes.EncounterState):Connect(function()
+			print(`[DevSandbox] {model.Name} → {model:GetAttribute(Types.Attributes.EncounterState)}`)
+		end)
+	end
+
 	ToolService.onHit(function(player, tool, model, damage)
-		local cfg = CreaturesConfig[model:GetAttribute(Types.Attributes.CreatureId) :: string]
-		local meter = (model:GetAttribute(Types.Attributes.OlvidoMeter) :: number?) or 1
-		meter = math.max(0, meter - damage / (cfg.maxOlvido :: number))
-		model:SetAttribute(Types.Attributes.OlvidoMeter, meter)
+		-- Corre después de CreatureService: el medidor ya está actualizado
+		local meter = (model:GetAttribute(Types.Attributes.OlvidoMeter) :: number?) or 0
 		print(
-			`[DevSandbox] {player.Name} · {tool} → {model.Name}: -{string.format("%.1f", damage)} · Olvido {math.floor(
-				meter * 100
-			)}%`
+			`[DevSandbox] {player.Name} · {tool} → {model.Name}: -{string.format("%.1f", damage)}`
+				.. ` · Olvido {math.floor(meter * 100)}%`
 		)
-		if meter <= 0 then
-			print(`[DevSandbox] {model.Name} disipada; reaparece en 3 s`)
-			task.delay(3, function()
-				model:SetAttribute(Types.Attributes.OlvidoMeter, 1)
-			end)
-		end
 	end)
 
 	ToolService.onActivate(function(player, tool, target)
@@ -145,7 +149,7 @@ function DevSandbox.start()
 		task.spawn(gift, p)
 	end
 
-	print("[DevSandbox] listo: polilla, rumor, chaneque, diana, palanca, resortera y zona del pueblo")
+	print("[DevSandbox] listo: 3 polillas, rumor, chaneque, diana, palanca, resortera y zona del pueblo")
 end
 
 return DevSandbox
